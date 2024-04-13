@@ -1,0 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+int main()
+{
+    printf("Hello world\n");
+    system("pause");
+    return 0;
+}
+###
+使用本项目运行C语言代码，需要引入stdlib.h文件，并且需要再代码末尾加入system("pause");这行代码，用于解决闪退问题。
+###
