@@ -1,0 +1,69 @@
+import tkinter as tk
+from tkinter import scrolledtext, filedialog, messagebox
+import subprocess
+import os
+window = tk.Tk()
+window.title("ZE-C 1.0")
+window.geometry("800x600")
+window.config(bg='#2d2d2d')
+current_file_path = ''
+menu_bar = tk.Menu(window, bg='#2d2d2d', fg='#ffffff')
+window.config(menu=menu_bar)
+file_menu = tk.Menu(menu_bar, tearoff=0, bg='#2d2d2d', fg='#ffffff')
+menu_bar.add_cascade(label="文件", menu=file_menu)
+def new_file():
+    global current_file_path
+    file_path = filedialog.asksaveasfilename(defaultextension=".c",
+                                             filetypes=[("C files", "*.c"), ("All files", "*.*")])
+    if file_path:
+        current_file_path = file_path
+        text_area.delete('1.0', tk.END)
+file_menu.add_command(label="新建", command=new_file)
+def open_file():
+    global current_file_path
+    file_path = filedialog.askopenfilename(filetypes=[("C files", "*.c"), ("All files", "*.*")])
+    if file_path:
+        current_file_path = file_path
+        with open(current_file_path, 'r') as file:
+            code = file.read()
+            text_area.delete('1.0', tk.END)
+            text_area.insert('1.0', code)
+file_menu.add_command(label="打开文件", command=open_file)
+def save_code():
+    global current_file_path
+    if current_file_path:
+        with open(current_file_path, 'w') as file:
+            code = text_area.get('1.0', tk.END)
+            file.write(code)
+file_menu.add_command(label="保存", command=save_code)
+file_menu.add_separator()
+file_menu.add_command(label="退出", command=window.quit)
+tool_bar = tk.Frame(window, bg='#2d2d2d', bd=1, relief=tk.RAISED)
+tool_bar.pack(side=tk.TOP, fill=tk.X)
+new_button = tk.Button(tool_bar, text="新建", command=new_file, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+new_button.pack(side=tk.LEFT, padx=5)
+open_button = tk.Button(tool_bar, text="打开文件", command=open_file, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+open_button.pack(side=tk.LEFT, padx=5)
+def compile_code():
+    save_code()
+    if current_file_path:
+        compile_command = f"gcc.exe {current_file_path} -o {current_file_path}.exe"
+        subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
+        if os.path.exists(f"{current_file_path}.exe"):
+            messagebox.showinfo("编译成功", "编译成功！")
+compile_button = tk.Button(tool_bar, text="编译", command=compile_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+compile_button.pack(side=tk.LEFT, padx=5)
+def run_code():
+    if current_file_path:
+        run_command = f"cmd /c start /wait {current_file_path}.exe"
+        subprocess.Popen(run_command, shell=True)
+run_button = tk.Button(tool_bar, text="运行", command=run_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+run_button.pack(side=tk.LEFT, padx=5)
+def compile_and_run_code():
+    compile_code()
+    run_code()
+compile_run_button = tk.Button(tool_bar, text="编译运行", command=compile_and_run_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+compile_run_button.pack(side=tk.LEFT, padx=5)
+text_area = scrolledtext.ScrolledText(window, wrap=tk.WORD, width=100, height=30, bg='#383838', fg='#ffffff', insertbackground='#ffffff', font=("Courier", 12))  
+text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+window.mainloop()
