@@ -1,0 +1,212 @@
+import tkinter as tk
+from tkinter import scrolledtext, filedialog, messagebox
+import subprocess
+import os
+
+# 创建主窗口
+window = tk.Tk()
+window.title("ZE-C 1.0")
+window.geometry("900x700")
+window.config(bg='#2e2e2e')
+
+# 当前文件路径
+current_file_path = ''
+
+# 菜单栏
+menu_bar = tk.Menu(window, bg='#2e2e2e', fg='#ffffff')
+window.config(menu=menu_bar)
+file_menu = tk.Menu(menu_bar, tearoff=0, bg='#2e2e2e', fg='#ffffff')
+edit_menu = tk.Menu(menu_bar, tearoff=0, bg='#2e2e2e', fg='#ffffff')
+menu_bar.add_cascade(label="文件", menu=file_menu)
+menu_bar.add_cascade(label="编辑", menu=edit_menu)
+
+# 新建文件功能
+def new_file():
+    global current_file_path
+    file_path = filedialog.asksaveasfilename(defaultextension=".c",
+                                             filetypes=[("C files", "*.c"), ("All files", "*.*")])
+    if file_path:
+        current_file_path = file_path
+        text_area.delete('1.0', tk.END)
+        text_area.focus()  # 将光标放置到文本区
+        messagebox.showinfo("提示", "新建文件成功！")
+    else:
+        messagebox.showwarning("提示", "新建文件失败")
+
+file_menu.add_command(label="新建", command=new_file)
+
+# 打开文件功能
+def open_file():
+    global current_file_path
+    file_path = filedialog.askopenfilename(filetypes=[("C files", "*.c"), ("All files", "*.*")])
+    if file_path:
+        current_file_path = file_path
+        with open(current_file_path, 'r') as file:
+            code = file.read()
+            text_area.delete('1.0', tk.END)
+            text_area.insert('1.0', code)
+
+file_menu.add_command(label="打开文件", command=open_file)
+
+# 保存文件功能
+def save_code():
+    global current_file_path
+    if current_file_path:
+        with open(current_file_path, 'w') as file:
+            code = text_area.get('1.0', tk.END)
+            file.write(code)
+
+file_menu.add_command(label="保存", command=save_code)
+
+# 保存为功能
+def save_as():
+    global current_file_path
+    file_path = filedialog.asksaveasfilename(defaultextension=".c",
+                                             filetypes=[("C files", "*.c"), ("All files", "*.*")])
+    if file_path:
+        current_file_path = file_path
+        save_code()
+
+file_menu.add_command(label="另存为", command=save_as)
+file_menu.add_separator()
+file_menu.add_command(label="退出", command=window.quit)
+
+# 查找功能
+def find_text():
+    find_window = tk.Toplevel(window)
+    find_window.title("查找")
+    find_window.geometry("300x100")
+    find_window.config(bg='#2e2e2e')
+    find_window.transient(window)
+
+    tk.Label(find_window, text="查找内容:", bg='#2e2e2e', fg='#ffffff').pack(pady=5)
+    search_entry = tk.Entry(find_window, width=30)
+    search_entry.pack(pady=5)
+
+    def search():
+        text_area.tag_remove('found', '1.0', tk.END)
+        search_text = search_entry.get()
+        if search_text:
+            start_pos = '1.0'
+            while True:
+                start_pos = text_area.search(search_text, start_pos, stopindex=tk.END)
+                if not start_pos:
+                    break
+                end_pos = f"{start_pos}+{len(search_text)}c"
+                text_area.tag_add('found', start_pos, end_pos)
+                start_pos = end_pos
+            text_area.tag_config('found', background='yellow', foreground='black')
+
+    tk.Button(find_window, text="查找", command=search, bg='#3a3a3a', fg='#ffffff').pack(pady=5)
+
+edit_menu.add_command(label="查找", command=find_text)
+
+# 替换功能
+def replace_text():
+    replace_window = tk.Toplevel(window)
+    replace_window.title("替换")
+    replace_window.geometry("300x150")
+    replace_window.config(bg='#2e2e2e')
+    replace_window.transient(window)
+
+    tk.Label(replace_window, text="查找内容:", bg='#2e2e2e', fg='#ffffff').pack(pady=5)
+    search_entry = tk.Entry(replace_window, width=30)
+    search_entry.pack(pady=5)
+
+    tk.Label(replace_window, text="替换为:", bg='#2e2e2e', fg='#ffffff').pack(pady=5)
+    replace_entry = tk.Entry(replace_window, width=30)
+    replace_entry.pack(pady=5)
+
+    def replace():
+        search_text = search_entry.get()
+        replace_text = replace_entry.get()
+        content = text_area.get('1.0', tk.END)
+        new_content = content.replace(search_text, replace_text)
+        text_area.delete('1.0', tk.END)
+        text_area.insert('1.0', new_content)
+
+    tk.Button(replace_window, text="替换", command=replace, bg='#3a3a3a', fg='#ffffff').pack(pady=5)
+
+edit_menu.add_command(label="替换", command=replace_text)
+
+# 撤销功能
+def undo():
+    try:
+        text_area.edit_undo()
+    except:
+        pass
+
+edit_menu.add_command(label="撤销", command=undo)
+
+# 重做功能
+def redo():
+    try:
+        text_area.edit_redo()
+    except:
+        pass
+
+edit_menu.add_command(label="重做", command=redo)
+
+# 工具栏
+tool_bar = tk.Frame(window, bg='#2e2e2e', bd=1, relief=tk.RAISED)
+tool_bar.pack(side=tk.TOP, fill=tk.X)
+new_button = tk.Button(tool_bar, text="新建", command=new_file, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+new_button.pack(side=tk.LEFT, padx=5)
+open_button = tk.Button(tool_bar, text="打开文件", command=open_file, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+open_button.pack(side=tk.LEFT, padx=5)
+save_button = tk.Button(tool_bar, text="保存", command=save_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+save_button.pack(side=tk.LEFT, padx=5)
+
+# 编译代码功能
+def compile_code():
+    save_code()
+    if current_file_path:
+        compile_command = f"gcc.exe {current_file_path} -o {current_file_path}.exe"
+        subprocess.Popen(compile_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).wait()
+        if os.path.exists(f"{current_file_path}.exe"):
+            messagebox.showinfo("编译成功", "编译成功！")
+
+compile_button = tk.Button(tool_bar, text="编译", command=compile_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+compile_button.pack(side=tk.LEFT, padx=5)
+
+# 运行代码功能
+def run_code():
+    if current_file_path:
+        run_command = f"cmd /c start /wait {current_file_path}.exe"
+        subprocess.Popen(run_command, shell=True)
+
+run_button = tk.Button(tool_bar, text="运行", command=run_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+run_button.pack(side=tk.LEFT, padx=5)
+
+# 编译并运行代码功能
+def compile_and_run_code():
+    compile_code()
+    run_code()
+
+compile_run_button = tk.Button(tool_bar, text="编译运行", command=compile_and_run_code, bg='#3a3a3a', fg='#ffffff', relief=tk.FLAT, padx=10, pady=5)
+compile_run_button.pack(side=tk.LEFT, padx=5)
+
+# 文本区域
+text_area = scrolledtext.ScrolledText(window, wrap=tk.WORD, undo=True, width=100, height=30, bg='#383838', fg='#ffffff', insertbackground='#ffffff', font=("Courier", 12))  
+text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+# 自动缩进
+def auto_indent(event=None):
+    # 获取当前行的内容
+    current_line = text_area.get("insert linestart", "insert")
+    # 计算当前行前面的空格数量
+    indentation = len(current_line) - len(current_line.lstrip(' '))
+    
+    # 如果当前行包含 "{", 那么下一行的缩进要多加 4 个空格
+    if '{' in current_line.strip():
+        indentation += 4
+    
+    # 在插入换行符的同时，插入相同数量的空格
+    text_area.insert(tk.INSERT, '\n' + ' ' * indentation)
+    
+    return "break"  # 阻止默认的换行行为
+
+text_area.bind('<Return>', auto_indent)
+
+# 主事件循环
+window.mainloop()
